@@ -71,7 +71,7 @@ class Parser:
             raise ValueError(f"Unknown zone: {start_name}")
         if not self.graph.has_zone(end_name):
             raise ValueError(f"Unknown zone: {end_name}")
-    
+
         start_zone = self.graph.get_zone(start_name)
         end_zone = self.graph.get_zone(end_name)
 
@@ -82,7 +82,6 @@ class Parser:
 
         start_zone.add_neighbor(end_zone)
         end_zone.add_neighbor(start_zone)
-
 
     def _parse_nb_drones(self, line: str):
         _, value = line.split(":")
@@ -97,7 +96,7 @@ class Parser:
         for part in parts:
             if "=" not in part:
                 raise ValueError(f"Invalid zone option: {part}")
-        
+
             key, value = part.split("=", 1)
             if key == "color":
                 zone.color = value
@@ -126,4 +125,3 @@ class Parser:
                 connection.max_link_capacity = int(value)
             else:
                 raise ValueError(f"Unknown connection option: {key}")
-            

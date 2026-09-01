@@ -15,7 +15,7 @@ class Graph:
     def add_zone(self, zone: Zone):
         if self.has_zone(zone.name):
             raise ValueError(f"Zone '{zone.name}' already exists")
-        
+
         self.zones[zone.name] = zone
 
         if zone.hub_type == HubType.START:
@@ -31,4 +31,3 @@ class Graph:
 
     def has_zone(self, name: str) -> bool:
         return name in self.zones
-

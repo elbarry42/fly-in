@@ -15,7 +15,7 @@ class Connection:
         self.max_link_capacity = max_link_capacity
 
     def __str__(self) -> str:
-        return(
+        return (
             f"Connection("
             f"{self.start.name} -> "
             f"{self.end.name}, "

@@ -2,7 +2,7 @@ from heapq import heappop, heappush
 from ..models.zone import Zone, ZoneType
 
 
-def find_shortest_path(start: Zone, end:Zone) -> list[Zone]:
+def find_shortest_path(start: Zone, end: Zone) -> list[Zone]:
     """Find the lowest-cost path between two zones using Dijkstra."""
     distances: dict[str, int] = {start.name: 0}
     previous: dict[str, Zone | None] = {start.name: None}
@@ -27,6 +27,7 @@ def find_shortest_path(start: Zone, end:Zone) -> list[Zone]:
             new_cost = current_cost + cost
 
             if new_cost < distances.get(neighbor.name, float("inf")):
+                distances[neighbor.name] = new_cost
                 previous[neighbor.name] = current
                 heappush(queue, (new_cost, neighbor.name, neighbor))
 
@@ -54,3 +55,7 @@ def _rebuild_path(previous: dict[str, Zone | None], end: Zone) -> list[Zone]:
 
     path.reverse()
     return path
+
+
+def find_all_paths() -> list[Zone]:
+    

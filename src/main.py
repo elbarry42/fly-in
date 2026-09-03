@@ -1,5 +1,5 @@
 from .parser.parser import Parser
-from .algorithm.algorithms import find_paths
+from .algorithm.algorithms import find_paths, assign_paths
 
 
 def main() -> None:
@@ -8,11 +8,18 @@ def main() -> None:
 
     paths = find_paths(graph.start, graph.end)
 
-    for i, path in enumerate(paths, 1):
-        print(f"Chemin {i} :")
+    assignments = assign_paths(
+        paths,
+        graph.nb_drones,
+    )
+
+    for drone_id, path in enumerate(assignments, start=1):
+        print(f"Drone {drone_id} :")
 
         for zone in path:
             print(zone.name)
+
+        print()
 
 
 if __name__ == "__main__":

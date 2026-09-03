@@ -86,3 +86,16 @@ def find_paths(start: Zone, end: Zone) -> list[list[Zone]]:
 
     find_all_paths(start, end, [start], paths)
     return paths
+
+
+def assign_paths(paths: list[list[Zone]], nb_drones: int) -> list[list[Zone]]:
+    if not paths:
+        raise ValueError("No path available")
+
+    assignments: list[list[Zone]] = []
+
+    for drone_id in range(nb_drones):
+        path = paths[drone_id % len(paths)]
+        assignments.append(path)
+
+    return assignments

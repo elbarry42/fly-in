@@ -57,5 +57,32 @@ def _rebuild_path(previous: dict[str, Zone | None], end: Zone) -> list[Zone]:
     return path
 
 
-def find_all_paths() -> list[Zone]:
-    
+def find_all_paths(
+        current: Zone,
+        end: Zone,
+        path: list[Zone],
+        paths: list[list[Zone]]
+) -> list[Zone]:
+
+    if current == end:
+        paths.append(path.copy())
+        return
+
+    for neighbor in current.neighbors:
+
+        if neighbor.zone_type == ZoneType.BLOCKED:
+            continue
+
+        if neighbor in path:
+            continue
+
+        path.append(neighbor)
+        find_all_paths(neighbor, end, path, paths)
+        path.pop()
+
+
+def find_paths(start: Zone, end: Zone) -> list[list[Zone]]:
+    paths: list[list[Zone]] = []
+
+    find_all_paths(start, end, [start], paths)
+    return paths

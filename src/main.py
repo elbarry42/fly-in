@@ -1,24 +1,18 @@
 from .parser.parser import Parser
-from .models.drone import Drone
+from .algorithm.algorithms import find_paths
 
 
 def main() -> None:
-    parser = Parser("maps/easy/01_linear_path.txt")
+    parser = Parser("maps/easy/02_simple_fork.txt")
     graph = parser.parse()
 
-    for zone in graph.zones.values():
-        print(zone.name)
+    paths = find_paths(graph.start, graph.end)
 
-        for neighbor in zone.neighbors:
-            print(" ->", neighbor.name)
+    for i, path in enumerate(paths, 1):
+        print(f"Chemin {i} :")
 
-    print("\nConnections :")
-
-    for connection in graph.connections:
-        print(connection)
-
-    drone = Drone(1, graph.start)
-    print(drone)
+        for zone in path:
+            print(zone.name)
 
 
 if __name__ == "__main__":

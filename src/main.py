@@ -1,5 +1,7 @@
 from .parser.parser import Parser
 from .algorithm.algorithms import find_paths, assign_paths
+from .simulation.simulation import Simulation
+from .models.drone import Drone
 
 
 def main() -> None:
@@ -8,18 +10,27 @@ def main() -> None:
 
     paths = find_paths(graph.start, graph.end)
 
-    assignments = assign_paths(
-        paths,
-        graph.nb_drones,
-    )
+    assignments = assign_paths(paths, graph.nb_drones)
+
+    drones: list[Drone] = []
 
     for drone_id, path in enumerate(assignments, start=1):
-        print(f"Drone {drone_id} :")
+        drone = Drone(drone_id, path[0])
+        drone.path = path
+        drones.append(drone)
 
-        for zone in path:
-            print(zone.name)
+    simulation = Simulation(graph, drones)
 
-        print()
+    for _ in range(5):
+        simulation.step()
+
+        print(f"Tour {simulation.turn}")
+
+        for drone in simulation.drones:
+            print(
+                f"Drone {drone.id} : "
+                f"{drone.current_zone.name}"
+            )
 
 
 if __name__ == "__main__":

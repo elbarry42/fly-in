@@ -1,5 +1,6 @@
 from heapq import heappop, heappush
 from ..models.zone import Zone, ZoneType
+from ..models.connection import Connection
 
 
 def find_shortest_path(start: Zone, end: Zone) -> list[Zone]:
@@ -99,3 +100,34 @@ def assign_paths(paths: list[list[Zone]], nb_drones: int) -> list[list[Zone]]:
         assignments.append(path)
 
     return assignments
+
+
+def get_connection(
+    start: Zone,
+    end: Zone,
+    connections: list[Connection]
+) -> Connection | None:
+    for connection in connections:
+        if (connection.start == start and connection.end == end):
+            return connection
+        if (connection.start == end and connection.end == start):
+            return connection
+        return None
+
+
+def path_capacity(path: list[Zone], connections: list[Connection]) -> int:
+    capacity = float("inf")
+
+    for zone in path:
+        capacity = min(capacity, zone.max_drones)
+
+    for i in range(len(path) - 1):
+        connection = get_connection(path[i], path[i + 1], connections)
+        if connection is None:
+            raise ValueError(
+                f"No connection between "
+                f"{path[i].name} and {path[i + 1].name}"
+            )
+        capacity = min(capacity, connection.max_link_capacity)
+
+    return int(capacity)

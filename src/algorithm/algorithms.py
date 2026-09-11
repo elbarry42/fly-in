@@ -63,7 +63,7 @@ def find_all_paths(
         end: Zone,
         path: list[Zone],
         paths: list[list[Zone]]
-) -> list[Zone]:
+) -> None:
 
     if current == end:
         paths.append(path.copy())
@@ -89,16 +89,173 @@ def find_paths(start: Zone, end: Zone) -> list[list[Zone]]:
     return paths
 
 
-def assign_paths(paths: list[list[Zone]], nb_drones: int) -> list[list[Zone]]:
+def path_cost(path: list[Zone], connections: list[Connection]) -> int:
+    """Calculate the total movement cost of a path."""
+    if len(path) < 2:
+        return 0
+
+    total = 0
+
+    for zone in path[1:]:
+        if zone.zone_type == ZoneType.BLOCKED:
+            return 10**9
+
+        if zone.zone_type == ZoneType.RESTRICTED:
+            total += 2
+        else:
+            total += 1
+
+    return total
+
+
+def path_score(
+    path: list[Zone],
+    connections: list[Connection]
+) -> tuple[int, int, int, int]:
+    """Calculate the score used to compare paths."""
+    cost = path_cost(path, connections)
+
+    priority_count = sum(
+        1
+        for zone in path
+        if zone.zone_type == ZoneType.PRIORITY
+    )
+
+    restricted_count = sum(
+        1
+        for zone in path
+        if zone.zone_type == ZoneType.RESTRICTED
+    )
+
+    return (
+        cost,
+        -priority_count,
+        restricted_count,
+        len(path),
+    )
+
+
+def _connection_load_score(
+    path: list[Zone],
+    connections: list[Connection],
+    connection_loads: dict[tuple[str, str], int],
+) -> float:
+    """Estimate the congestion created by assigning a drone to a path."""
+    score = 0.0
+
+    for i in range(len(path) - 1):
+        connection = get_connection(
+            path[i],
+            path[i + 1],
+            connections,
+        )
+
+        if connection is None:
+            raise ValueError(
+                f"No connection between "
+                f"{path[i].name} and {path[i + 1].name}"
+            )
+
+        key = (
+            min(path[i].name, path[i + 1].name),
+            max(path[i].name, path[i + 1].name),
+        )
+
+        current_load = connection_loads.get(key, 0)
+
+        score += (
+            (current_load + 1)
+            / connection.max_link_capacity
+        )
+    return score
+
+
+def assign_paths(
+    paths: list[list[Zone]],
+    nb_drones: int,
+    connections: list[Connection] | None = None
+) -> list[list[Zone]]:
+    """Distribute drones while limiting connection congestion."""
     if not paths:
         raise ValueError("No path available")
 
+    if nb_drones <= 0:
+        raise ValueError("Number of drones must be positive")
+
+    if connections is None:
+        connections = []
+
+    valid_paths: list[list[Zone]] = []
+
+    for path in paths:
+        if len(path) < 2:
+            continue
+
+        if any(
+            zone.zone_type == ZoneType.BLOCKED
+            for zone in path
+        ):
+            continue
+
+        valid_paths.append(path)
+
+    if not valid_paths:
+        raise ValueError("No valid path available")
+
+    valid_paths.sort(
+        key=lambda path: path_score(path, connections)
+    )
+
     assignments: list[list[Zone]] = []
 
-    for drone_id in range(nb_drones):
-        path = paths[drone_id % len(paths)]
-        assignments.append(path)
+    connection_loads: dict[tuple[str, str], int] = {}
 
+    for _ in range(nb_drones):
+        best_path: list[Zone] | None = None
+        best_score: tuple[float, int, int, int] | None = None
+
+        for path in valid_paths:
+            congestion = _connection_load_score(
+                path,
+                connections,
+                connection_loads,
+            )
+
+            cost, priority_score, restricted_count, length = (
+                path_score(path, connections)
+            )
+
+            score = (
+                cost + congestion,
+                cost,
+                priority_score,
+                restricted_count,
+            )
+
+            if best_score is None or score < best_score:
+                best_score = score
+                best_path = path
+
+        if best_path is None:
+            raise ValueError(
+                "Unable to assign a path to a drone"
+            )
+
+        assignments.append(best_path)
+
+        for i in range(len(best_path) - 1):
+            key = (
+                min(
+                    best_path[i].name,
+                    best_path[i + 1].name,
+                ),
+                max(
+                    best_path[i].name,
+                    best_path[i + 1].name,
+                ),
+            )
+
+            connection_loads[key] = (connection_loads.get(key, 0) + 1)
     return assignments
 
 
@@ -112,7 +269,7 @@ def get_connection(
             return connection
         if (connection.start == end and connection.end == start):
             return connection
-        return None
+    return None
 
 
 def path_capacity(path: list[Zone], connections: list[Connection]) -> int:

@@ -27,6 +27,7 @@ class Simulation:
             str | None,
             str | None,
         ]]] = []
+        self._save_snapshot()
 
     def _finish_transits(self) -> None:
         """Finish restricted movements started on previous turns."""

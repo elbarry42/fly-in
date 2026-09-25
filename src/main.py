@@ -13,74 +13,41 @@ def create_simulation(map_file: str) -> Simulation:
     graph = parser.parse()
 
     if graph.start is None or graph.end is None:
-        raise ValueError(
-            "The map must contain a start and an end zone"
-        )
+        raise ValueError("The map must contain a start and an end zone")
 
-    paths = find_paths(
-        graph.start,
-        graph.end,
-    )
-
+    paths = find_paths(graph.start, graph.end)
     assignments = assign_paths(
-        paths,
-        graph.nb_drones,
-        graph.connections,
+        paths, graph.nb_drones, graph.connections
     )
 
     drones: list[Drone] = []
-
-    for drone_id, path in enumerate(
-        assignments,
-        start=1,
-    ):
-        drone = Drone(
-            drone_id,
-            path[0],
-        )
-
+    for drone_id, path in enumerate(assignments, start=1):
+        drone = Drone(drone_id, path[0])
         drone.path = path
         drones.append(drone)
 
-    return Simulation(
-        graph,
-        drones,
-    )
+    return Simulation(graph, drones)
 
 
 def run_simulation(map_file: str) -> Simulation:
     """Run a complete simulation."""
     simulation = create_simulation(map_file)
 
-    while not all(
-        drone.finished
-        for drone in simulation.drones
-    ):
+    while not all(drone.finished for drone in simulation.drones):
         before = [
-            (
-                drone.current_zone.name,
-                drone.path_index,
-                drone.in_transit,
-            )
+            (drone.current_zone.name, drone.path_index, drone.in_transit)
             for drone in simulation.drones
         ]
 
         simulation.step()
 
         after = [
-            (
-                drone.current_zone.name,
-                drone.path_index,
-                drone.in_transit,
-            )
+            (drone.current_zone.name, drone.path_index, drone.in_transit)
             for drone in simulation.drones
         ]
 
         if before == after:
-            raise RuntimeError(
-                "Simulation deadlock: "
-                "no drone can move"
-            )
+            raise RuntimeError("Simulation deadlock: no drone can move")
 
     return simulation
 
@@ -94,7 +61,6 @@ def print_history(simulation: Simulation) -> None:
 def run_map(map_file: str) -> None:
     """Run and display one map."""
     simulation = run_simulation(map_file)
-
     visualizer = Visualizer(simulation)
     visualizer.run()
 
@@ -102,11 +68,7 @@ def run_map(map_file: str) -> None:
 def main() -> None:
     """Run the Fly-in program."""
     if len(sys.argv) != 2:
-        raise ValueError(
-            "Usage: "
-            "python3 -m src.main "
-            "<map_file>"
-        )
+        raise ValueError("Usage: python3 -m src.main <map_file>")
 
     argument = sys.argv[1]
     run_map(argument)

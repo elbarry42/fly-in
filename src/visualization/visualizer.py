@@ -46,46 +46,25 @@ class Visualizer:
         self.button_font = pygame.font.Font(None, 22)
 
         self.running = True
-
-        # Current displayed simulation turn.
         self.current_turn = 0
-
-        # Animation between two simulation turns.
         self.animation_progress = 0.0
         self.animation_duration = 0.8
-
-        # Automatic playback.
         self.playing = False
         self.pause_requested = False
 
         self.positions = self._calculate_positions()
 
         self.previous_button = pygame.Rect(
-            300,
-            720,
-            self.BUTTON_WIDTH,
-            self.BUTTON_HEIGHT,
+            300, 720, self.BUTTON_WIDTH, self.BUTTON_HEIGHT
         )
-
         self.next_button = pygame.Rect(
-            455,
-            720,
-            self.BUTTON_WIDTH,
-            self.BUTTON_HEIGHT,
+            455, 720, self.BUTTON_WIDTH, self.BUTTON_HEIGHT
         )
-
         self.play_button = pygame.Rect(
-            610,
-            720,
-            self.BUTTON_WIDTH,
-            self.BUTTON_HEIGHT,
+            610, 720, self.BUTTON_WIDTH, self.BUTTON_HEIGHT
         )
-
         self.reset_button = pygame.Rect(
-            765,
-            720,
-            self.BUTTON_WIDTH,
-            self.BUTTON_HEIGHT,
+            765, 720, self.BUTTON_WIDTH, self.BUTTON_HEIGHT
         )
 
     def run(self) -> None:
@@ -93,7 +72,6 @@ class Visualizer:
         try:
             while self.running:
                 delta_time = self.clock.tick(self.FPS) / 1000.0
-
                 self._handle_events()
                 self._update(delta_time)
                 self._draw()
@@ -105,10 +83,8 @@ class Visualizer:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-
             elif event.type == pygame.KEYDOWN:
                 self._handle_keyboard(event.key)
-
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     self._handle_mouse_click(event.pos)
@@ -117,36 +93,28 @@ class Visualizer:
         """Handle keyboard controls."""
         if key == pygame.K_RIGHT:
             self._next_turn()
-
         elif key == pygame.K_LEFT:
             self._previous_turn()
-
         elif key == pygame.K_SPACE:
             self._toggle_play()
-
         elif key == pygame.K_r:
             self._reset()
-
         elif key == pygame.K_ESCAPE:
             self.running = False
 
     def _handle_mouse_click(
-        self,
-        position: tuple[int, int],
+        self, position: tuple[int, int]
     ) -> None:
         """Handle clicks on simulation controls."""
         if self.previous_button.collidepoint(position):
             self._previous_turn()
             return
-
         if self.next_button.collidepoint(position):
             self._next_turn()
             return
-
         if self.play_button.collidepoint(position):
             self._toggle_play()
             return
-
         if self.reset_button.collidepoint(position):
             self._reset()
 
@@ -154,24 +122,20 @@ class Visualizer:
         """Display the next simulation turn immediately."""
         if self.current_turn >= self.simulation.turn:
             return
-
         self.playing = False
         self.pause_requested = False
         self.current_turn += 1
         self.animation_progress = 1.0
-
         self._print_current_turn()
 
     def _previous_turn(self) -> None:
         """Display the previous simulation turn immediately."""
         if self.current_turn <= 0:
             return
-
         self.playing = False
         self.pause_requested = False
         self.current_turn -= 1
         self.animation_progress = 1.0
-
         self._print_current_turn()
 
     def _toggle_play(self) -> None:
@@ -179,10 +143,8 @@ class Visualizer:
         if self.playing:
             self.pause_requested = True
             return
-
         if self.current_turn >= self.simulation.turn:
             return
-
         self.pause_requested = False
         self.playing = True
         self.animation_progress = 0.0
@@ -193,23 +155,19 @@ class Visualizer:
         self.animation_progress = 1.0
         self.playing = False
         self.pause_requested = False
-
         self._print_current_turn()
 
     def _update(self, delta_time: float) -> None:
         """Update automatic animation between simulation turns."""
         if not self.playing:
             return
-
         if self.current_turn >= self.simulation.turn:
             self.playing = False
             self.pause_requested = False
             self.animation_progress = 1.0
             return
 
-        self.animation_progress += (
-            delta_time / self.animation_duration
-        )
+        self.animation_progress += delta_time / self.animation_duration
 
         if self.animation_progress < 1.0:
             return
@@ -229,15 +187,12 @@ class Visualizer:
 
         self.animation_progress = 0.0
 
-    def _calculate_positions(
-        self,
-    ) -> dict[str, tuple[int, int]]:
+    def _calculate_positions(self) -> dict[str, tuple[int, int]]:
         """Calculate screen positions from map coordinates."""
         if not self.graph.zones:
             return {}
 
         zones = list(self.graph.zones.values())
-
         min_x = min(zone.x for zone in zones)
         max_x = max(zone.x for zone in zones)
         min_y = min(zone.y for zone in zones)
@@ -247,11 +202,7 @@ class Visualizer:
         coordinate_height = max_y - min_y
 
         available_width = self.WINDOW_WIDTH - 2 * self.MARGIN_X
-        available_height = (
-            self.WINDOW_HEIGHT
-            - self.MARGIN_Y
-            - 150
-        )
+        available_height = self.WINDOW_HEIGHT - self.MARGIN_Y - 150
 
         if coordinate_width > 0:
             scale_x = available_width / coordinate_width
@@ -274,66 +225,38 @@ class Visualizer:
 
         map_width = coordinate_width * scale
         map_height = coordinate_height * scale
-
-        offset_x = (
-            self.WINDOW_WIDTH - map_width
-        ) / 2
-
-        offset_y = (
-            self.WINDOW_HEIGHT - map_height
-        ) / 2
+        offset_x = (self.WINDOW_WIDTH - map_width) / 2
+        offset_y = (self.WINDOW_HEIGHT - map_height) / 2
 
         positions: dict[str, tuple[int, int]] = {}
 
         for zone in zones:
-            screen_x = int(
-                offset_x
-                + (zone.x - min_x) * scale
-            )
-
-            screen_y = int(
-                offset_y
-                + (max_y - zone.y) * scale
-            )
-
-            positions[zone.name] = (
-                screen_x,
-                screen_y,
-            )
+            screen_x = int(offset_x + (zone.x - min_x) * scale)
+            screen_y = int(offset_y + (max_y - zone.y) * scale)
+            positions[zone.name] = (screen_x, screen_y)
 
         return positions
 
     def _draw(self) -> None:
         """Draw the complete interface."""
         self.screen.fill(self.BACKGROUND)
-
         self._draw_title()
         self._draw_connections()
         self._draw_zones()
         self._draw_drones()
         self._draw_controls()
-
         pygame.display.flip()
 
     def _draw_title(self) -> None:
         """Draw the title and current turn."""
-        title = self.title_font.render(
-            "FLY-IN",
-            True,
-            self.TEXT_COLOR,
-        )
-
+        title = self.title_font.render("FLY-IN", True, self.TEXT_COLOR)
         self.screen.blit(title, (25, 20))
 
         turn_text = self.font.render(
-            (
-                f"Turn {self.current_turn} / "
-                f"{self.simulation.turn}"
-            ),
+            f"Turn {self.current_turn} / {self.simulation.turn}",
             True,
             self.TEXT_COLOR,
         )
-
         self.screen.blit(turn_text, (25, 60))
 
     def _draw_connections(self) -> None:
@@ -342,75 +265,43 @@ class Visualizer:
             start = self.positions[connection.start.name]
             end = self.positions[connection.end.name]
 
+            pygame.draw.line(self.screen, (240, 240, 240), start, end, 7)
             pygame.draw.line(
-                    self.screen,
-                    (240, 240, 240),
-                    start,
-                    end,
-                    7,
-                )
-            pygame.draw.line(
-                self.screen,
-                self.CONNECTION_COLOR,
-                start,
-                end,
-                3,
+                self.screen, self.CONNECTION_COLOR, start, end, 3
             )
 
     def _draw_zones(self) -> None:
         """Draw all graph zones."""
         for zone in self.graph.zones.values():
             position = self.positions[zone.name]
-
             pygame.draw.circle(
                 self.screen,
                 self._get_zone_color(zone),
                 position,
                 self.ZONE_RADIUS,
             )
-
             pygame.draw.circle(
-                self.screen,
-                self.TEXT_COLOR,
-                position,
-                self.ZONE_RADIUS,
-                2,
+                self.screen, self.TEXT_COLOR, position, self.ZONE_RADIUS, 2
             )
+            self._draw_zone_name(zone.name, position)
 
-            self._draw_zone_name(
-                zone.name,
-                position,
-            )
-
-    def _get_zone_color(
-        self,
-        zone: Zone,
-    ) -> tuple[int, int, int]:
+    def _get_zone_color(self, zone: Zone) -> tuple[int, int, int]:
         """Return the display color for a zone."""
         if zone.color is not None:
             return self._parse_color(zone.color)
-
         if zone.hub_type == HubType.START:
             return (50, 180, 80)
-
         if zone.hub_type == HubType.END:
             return (180, 60, 60)
-
         if zone.zone_type == ZoneType.PRIORITY:
             return (220, 180, 50)
-
         if zone.zone_type == ZoneType.RESTRICTED:
             return (180, 100, 220)
-
         if zone.zone_type == ZoneType.BLOCKED:
             return (60, 60, 60)
-
         return (70, 70, 80)
 
-    def _parse_color(
-        self,
-        color: str,
-    ) -> tuple[int, int, int]:
+    def _parse_color(self, color: str) -> tuple[int, int, int]:
         """Convert a map color into RGB."""
         colors = {
             "red": (200, 60, 60),
@@ -424,38 +315,21 @@ class Visualizer:
             "white": (230, 230, 230),
             "black": (20, 20, 20),
         }
-
-        return colors.get(
-            color.lower(),
-            (100, 100, 100),
-        )
+        return colors.get(color.lower(), (100, 100, 100))
 
     def _draw_zone_name(
-        self,
-        name: str,
-        position: tuple[int, int],
+        self, name: str, position: tuple[int, int]
     ) -> None:
         """Draw a zone name below its node."""
-        text = self.font.render(
-            name,
-            True,
-            self.TEXT_COLOR,
-        )
-
+        text = self.font.render(name, True, self.TEXT_COLOR)
         text_rect = text.get_rect(
-            center=(
-                position[0],
-                position[1] + self.ZONE_RADIUS + 15,
-            )
+            center=(position[0], position[1] + self.ZONE_RADIUS + 15)
         )
-
         self.screen.blit(text, text_rect)
 
     def _draw_drones(self) -> None:
         """Draw drones at their current or interpolated positions."""
-        snapshot = self.simulation.get_snapshot(
-            self.current_turn
-        )
+        snapshot = self.simulation.get_snapshot(self.current_turn)
 
         if self.current_turn == 0:
             previous_snapshot = snapshot
@@ -464,16 +338,12 @@ class Visualizer:
                 self.current_turn - 1
             )
 
-        previous_states = {
-            state[0]: state
-            for state in previous_snapshot
-        }
+        previous_states = {state[0]: state for state in previous_snapshot}
 
         for state in snapshot:
             drone_id = state[0]
             current_zone_name = state[1]
             destination_name = state[4]
-
             previous_state = previous_states.get(drone_id)
 
             if previous_state is None:
@@ -484,18 +354,10 @@ class Visualizer:
             if self.current_turn == 0:
                 start_name = current_zone_name
                 end_name = current_zone_name
-
             elif destination_name is not None:
-                # Restricted transit:
-                # the drone starts from its current zone
-                # and moves along the connection.
                 start_name = current_zone_name
                 end_name = destination_name
-
             else:
-                # Normal movement:
-                # interpolate between the previous and
-                # current simulation zones.
                 start_name = previous_zone_name
                 end_name = current_zone_name
 
@@ -506,32 +368,19 @@ class Visualizer:
                 continue
 
             progress = self.animation_progress
-
             x = int(
                 start_position[0]
-                + (
-                    end_position[0]
-                    - start_position[0]
-                ) * progress
+                + (end_position[0] - start_position[0]) * progress
             )
-
             y = int(
                 start_position[1]
-                + (
-                    end_position[1]
-                    - start_position[1]
-                ) * progress
+                + (end_position[1] - start_position[1]) * progress
             )
 
-            self._draw_drone(
-                drone_id,
-                (x, y),
-            )
+            self._draw_drone(drone_id, (x, y))
 
     def _draw_drone(
-        self,
-        drone_id: int,
-        position: tuple[int, int],
+        self, drone_id: int, position: tuple[int, int]
     ) -> None:
         """Draw one drone."""
         pygame.draw.circle(
@@ -540,7 +389,6 @@ class Visualizer:
             position,
             self.DRONE_RADIUS,
         )
-
         pygame.draw.circle(
             self.screen,
             (30, 30, 30),
@@ -548,17 +396,8 @@ class Visualizer:
             self.DRONE_RADIUS,
             2,
         )
-
-        text = self.font.render(
-            str(drone_id),
-            True,
-            (30, 30, 30),
-        )
-
-        text_rect = text.get_rect(
-            center=position,
-        )
-
+        text = self.font.render(str(drone_id), True, (30, 30, 30))
+        text_rect = text.get_rect(center=position)
         self.screen.blit(text, text_rect)
 
     def _draw_controls(self) -> None:
@@ -566,10 +405,7 @@ class Visualizer:
         buttons = [
             (self.previous_button, "Previous"),
             (self.next_button, "Next"),
-            (
-                self.play_button,
-                "Pause" if self.playing else "Play",
-            ),
+            (self.play_button, "Pause" if self.playing else "Play"),
             (self.reset_button, "Reset"),
         ]
 
@@ -582,12 +418,8 @@ class Visualizer:
                 color = self.BUTTON_COLOR
 
             pygame.draw.rect(
-                self.screen,
-                color,
-                rectangle,
-                border_radius=8,
+                self.screen, color, rectangle, border_radius=8
             )
-
             pygame.draw.rect(
                 self.screen,
                 self.BUTTON_BORDER_COLOR,
@@ -595,29 +427,17 @@ class Visualizer:
                 width=2,
                 border_radius=8,
             )
-
             text = self.button_font.render(
-                label,
-                True,
-                self.TEXT_COLOR,
+                label, True, self.TEXT_COLOR
             )
-
-            text_rect = text.get_rect(
-                center=rectangle.center,
-            )
-
-            self.screen.blit(
-                text,
-                text_rect,
-            )
+            text_rect = text.get_rect(center=rectangle.center)
+            self.screen.blit(text, text_rect)
 
     def _print_current_turn(self) -> None:
         """Display the movements of the current simulation turn."""
         print("\033[2J\033[H", end="")
-
         if self.current_turn == 0:
             return
 
         events = self.simulation.history[self.current_turn - 1]
-
         print(" ".join(event for event in events if event), flush=True)

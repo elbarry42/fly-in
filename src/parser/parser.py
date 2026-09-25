@@ -39,9 +39,7 @@ class Parser:
                         ) from error
 
         except FileNotFoundError as error:
-            raise ValueError(
-                f"File '{self.filename}' not found"
-            ) from error
+            raise ValueError(f"File '{self.filename}' not found") from error
         except OSError as error:
             raise ValueError(
                 f"Unable to read '{self.filename}': {error}"
@@ -55,15 +53,11 @@ class Parser:
         """Parse one non-empty, non-comment line."""
         if line_number == 1:
             if not line.startswith("nb_drones:"):
-                raise ValueError(
-                    "first line must define nb_drones"
-                )
+                raise ValueError("first line must define nb_drones")
 
         if line.startswith("nb_drones"):
             if self._seen_nb_drones:
-                raise ValueError(
-                    "nb_drones can only be defined once"
-                )
+                raise ValueError("nb_drones can only be defined once")
             self._parse_nb_drones(line)
             self._seen_nb_drones = True
             return
@@ -79,32 +73,24 @@ class Parser:
         parts = line.split(":", 1)
 
         if len(parts) != 2 or parts[0].strip() != "nb_drones":
-            raise ValueError(
-                "invalid nb_drones syntax"
-            )
+            raise ValueError("invalid nb_drones syntax")
 
         value = parts[1].strip()
 
         if not value or not self.INTEGER_PATTERN.fullmatch(value):
-            raise ValueError(
-                "nb_drones must be a positive integer"
-            )
+            raise ValueError("nb_drones must be a positive integer")
 
         nb_drones = int(value)
 
         if nb_drones <= 0:
-            raise ValueError(
-                "nb_drones must be a positive integer"
-            )
+            raise ValueError("nb_drones must be a positive integer")
 
         self.graph.nb_drones = nb_drones
 
     def _parse_zone(self, line: str) -> None:
         """Parse a zone definition."""
         if ":" not in line:
-            raise ValueError(
-                "missing ':' in zone definition"
-            )
+            raise ValueError("missing ':' in zone definition")
 
         left, right = line.split(":", 1)
 
@@ -120,9 +106,7 @@ class Parser:
         parts = zone_data.strip().split()
 
         if len(parts) != 3:
-            raise ValueError(
-                "zone must contain exactly: <name> <x> <y>"
-            )
+            raise ValueError("zone must contain exactly: <name> <x> <y>")
 
         name, x_value, y_value = parts
 
@@ -131,12 +115,7 @@ class Parser:
         x = self._parse_integer(x_value, "x coordinate")
         y = self._parse_integer(y_value, "y coordinate")
 
-        zone = Zone(
-            name=name,
-            hub_type=hub_type,
-            x=x,
-            y=y,
-        )
+        zone = Zone(name=name, hub_type=hub_type, x=x, y=y)
 
         self._parse_zone_options(zone, options)
 
@@ -151,74 +130,47 @@ class Parser:
     def _parse_connection(self, line: str) -> None:
         """Parse a connection definition."""
         if ":" not in line:
-            raise ValueError(
-                "missing ':' in connection definition"
-            )
+            raise ValueError("missing ':' in connection definition")
 
         left, right = line.split(":", 1)
 
         if left.strip() != "connection":
-            raise ValueError(
-                "invalid connection syntax"
-            )
+            raise ValueError("invalid connection syntax")
 
         zone_data, options = self._split_metadata(right)
 
         parts = zone_data.strip().split("-")
 
         if len(parts) != 2:
-            raise ValueError(
-                "connection must use: <zone1>-<zone2>"
-            )
+            raise ValueError("connection must use: <zone1>-<zone2>")
 
-        start_name, end_name = (
-            part.strip()
-            for part in parts
-        )
+        start_name, end_name = (part.strip() for part in parts)
 
         if not start_name or not end_name:
-            raise ValueError(
-                "connection contains an empty zone name"
-            )
+            raise ValueError("connection contains an empty zone name")
 
         if start_name == end_name:
-            raise ValueError(
-                "a zone cannot be connected to itself"
-            )
+            raise ValueError("a zone cannot be connected to itself")
 
         if not self.graph.has_zone(start_name):
-            raise ValueError(
-                f"unknown zone '{start_name}'"
-            )
+            raise ValueError(f"unknown zone '{start_name}'")
 
         if not self.graph.has_zone(end_name):
-            raise ValueError(
-                f"unknown zone '{end_name}'"
-            )
+            raise ValueError(f"unknown zone '{end_name}'")
 
-        key = (
-            min(start_name, end_name),
-            max(start_name, end_name),
-        )
+        key = (min(start_name, end_name), max(start_name, end_name))
 
         if key in self._connection_keys:
             raise ValueError(
-                f"duplicate connection "
-                f"'{start_name}-{end_name}'"
+                f"duplicate connection '{start_name}-{end_name}'"
             )
 
         start_zone = self.graph.get_zone(start_name)
         end_zone = self.graph.get_zone(end_name)
 
-        connection = Connection(
-            start_zone,
-            end_zone,
-        )
+        connection = Connection(start_zone, end_zone)
 
-        self._parse_connection_options(
-            connection,
-            options,
-        )
+        self._parse_connection_options(connection, options)
 
         self.graph.add_connection(connection)
 
@@ -235,23 +187,17 @@ class Parser:
             return text, ""
 
         if "]" not in text:
-            raise ValueError(
-                "metadata block is not closed"
-            )
+            raise ValueError("metadata block is not closed")
 
         if text.count("[") != 1 or text.count("]") != 1:
-            raise ValueError(
-                "invalid metadata block"
-            )
+            raise ValueError("invalid metadata block")
 
         data, metadata = text.split("[", 1)
 
         parts = metadata.rsplit("]", 1)
 
         if len(parts) != 2 or parts[1].strip():
-            raise ValueError(
-                "invalid metadata block"
-            )
+            raise ValueError("invalid metadata block")
 
         return data.strip(), parts[0].strip()
 
@@ -266,16 +212,12 @@ class Parser:
 
         for part in options.split():
             if "=" not in part:
-                raise ValueError(
-                    f"invalid zone option '{part}'"
-                )
+                raise ValueError(f"invalid zone option '{part}'")
 
             key, value = part.split("=", 1)
 
             if not key or not value:
-                raise ValueError(
-                    f"invalid zone option '{part}'"
-                )
+                raise ValueError(f"invalid zone option '{part}'")
 
             if key == "color":
                 zone.color = value
@@ -289,22 +231,15 @@ class Parser:
                     ) from error
 
             elif key == "max_drones":
-                capacity = self._parse_integer(
-                    value,
-                    "max_drones",
-                )
+                capacity = self._parse_integer(value, "max_drones")
 
                 if capacity <= 0:
-                    raise ValueError(
-                        "max_drones must be positive"
-                    )
+                    raise ValueError("max_drones must be positive")
 
                 zone.max_drones = capacity
 
             else:
-                raise ValueError(
-                    f"unknown zone option '{key}'"
-                )
+                raise ValueError(f"unknown zone option '{key}'")
 
     def _parse_connection_options(
         self,
@@ -317,16 +252,12 @@ class Parser:
 
         for part in options.split():
             if "=" not in part:
-                raise ValueError(
-                    f"invalid connection option '{part}'"
-                )
+                raise ValueError(f"invalid connection option '{part}'")
 
             key, value = part.split("=", 1)
 
             if not key or not value:
-                raise ValueError(
-                    f"invalid connection option '{part}'"
-                )
+                raise ValueError(f"invalid connection option '{part}'")
 
             if key == "max_link_capacity":
                 capacity = self._parse_integer(
@@ -335,23 +266,17 @@ class Parser:
                 )
 
                 if capacity <= 0:
-                    raise ValueError(
-                        "max_link_capacity must be positive"
-                    )
+                    raise ValueError("max_link_capacity must be positive")
 
                 connection.max_link_capacity = capacity
 
             else:
-                raise ValueError(
-                    f"unknown connection option '{key}'"
-                )
+                raise ValueError(f"unknown connection option '{key}'")
 
     def _validate_zone_name(self, name: str) -> None:
         """Validate a zone name."""
         if not self.ZONE_NAME_PATTERN.fullmatch(name):
-            raise ValueError(
-                f"invalid zone name '{name}'"
-            )
+            raise ValueError(f"invalid zone name '{name}'")
 
     def _parse_integer(
         self,
@@ -360,27 +285,21 @@ class Parser:
     ) -> int:
         """Parse an integer value."""
         if not self.INTEGER_PATTERN.fullmatch(value):
-            raise ValueError(
-                f"{field_name} must be an integer"
-            )
+            raise ValueError(f"{field_name} must be an integer")
 
         return int(value)
 
     def _validate_graph(self) -> None:
         """Validate global map constraints."""
         if not self._seen_nb_drones:
-            raise ValueError(
-                "missing nb_drones definition"
-            )
+            raise ValueError("missing nb_drones definition")
 
         if self._start_count != 1:
             raise ValueError(
-                f"expected exactly one start_hub, "
-                f"found {self._start_count}"
+                f"expected exactly one start_hub, found {self._start_count}"
             )
 
         if self._end_count != 1:
             raise ValueError(
-                f"expected exactly one end_hub, "
-                f"found {self._end_count}"
+                f"expected exactly one end_hub, found {self._end_count}"
             )

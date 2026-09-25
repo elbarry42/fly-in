@@ -30,12 +30,6 @@ class Drone:
                 else "?"
             )
 
-            return (
-                f"Drone(id={self.id}, "
-                f"transit -> {destination})"
-            )
+            return f"Drone(id={self.id}, transit -> {destination})"
 
-        return (
-            f"Drone(id={self.id}, "
-            f"zone={self.current_zone.name})"
-        )
+        return f"Drone(id={self.id}, zone={self.current_zone.name})"

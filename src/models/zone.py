@@ -42,12 +42,8 @@ class Zone:
 
     def __str__(self) -> str:
         return (
-            f"Zone("
-            f"name={self.name}, "
-            f"type={self.hub_type.value}, "
-            f"x={self.x}, "
-            f"y={self.y}, "
-            f"zone_type={self.zone_type.value}, "
+            f"Zone(name={self.name}, type={self.hub_type.value}, "
+            f"x={self.x}, y={self.y}, zone_type={self.zone_type.value}, "
             f"capacity={self.max_drones})"
         )
 

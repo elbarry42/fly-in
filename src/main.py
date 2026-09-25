@@ -108,42 +108,6 @@ def run_single_map(map_file: str) -> None:
     visualizer.run()
 
 
-def run_all_maps() -> None:
-    """Run all available test maps."""
-    maps = [
-        "maps/easy/01_linear_path.txt",
-        "maps/easy/02_simple_fork.txt",
-        "maps/easy/03_basic_capacity.txt",
-        "maps/medium/01_dead_end_trap.txt",
-        "maps/medium/02_circular_loop.txt",
-        "maps/medium/03_priority_puzzle.txt",
-        "maps/hard/01_maze_nightmare.txt",
-        "maps/hard/02_capacity_hell.txt",
-        "maps/hard/03_ultimate_challenge.txt",
-    ]
-
-    print("=== Fly-in benchmark ===")
-
-    for map_file in maps:
-        try:
-            simulation = run_simulation(map_file)
-
-            print(
-                f"[OK] {map_file}: "
-                f"{simulation.turn} tours"
-            )
-
-        except (
-            ValueError,
-            RuntimeError,
-            OSError,
-        ) as error:
-            print(
-                f"[FAIL] {map_file}: "
-                f"{error}"
-            )
-
-
 def main() -> None:
     """Run the Fly-in program."""
     if len(sys.argv) != 2:
@@ -154,24 +118,14 @@ def main() -> None:
         )
 
     argument = sys.argv[1]
-
-    if argument == "--all":
-        run_all_maps()
-        return
-
     run_single_map(argument)
 
 
 if __name__ == "__main__":
     try:
         main()
-    except (
-        ValueError,
-        RuntimeError,
-        OSError,
-    ) as error:
-        print(
-            f"Error: {error}",
-            file=sys.stderr,
-        )
+    except KeyboardInterrupt:
+        print("Program interrupt by user")
+    except (ValueError, RuntimeError, OSError) as error:
+        print(f"Error: {error}", file=sys.stderr)
         sys.exit(1)

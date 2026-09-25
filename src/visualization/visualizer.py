@@ -2,7 +2,6 @@ import pygame
 
 from ..models.zone import HubType, Zone, ZoneType
 from ..simulation.simulation import Simulation
-from ..models.connection import Connection
 
 
 class Visualizer:
@@ -59,11 +58,6 @@ class Visualizer:
         self.playing = False
         self.pause_requested = False
 
-        self.hovered_zone: Zone | None = None
-        self.hovered_connection: Connection | None = None
-        self.selected_zone: Zone | None = None
-        self.selected_connection: Connection | None = None
-
         self.positions = self._calculate_positions()
 
         self.previous_button = pygame.Rect(
@@ -96,14 +90,15 @@ class Visualizer:
 
     def run(self) -> None:
         """Run the graphical interface."""
-        while self.running:
-            delta_time = self.clock.tick(self.FPS) / 1000.0
+        try:
+            while self.running:
+                delta_time = self.clock.tick(self.FPS) / 1000.0
 
-            self._handle_events()
-            self._update(delta_time)
-            self._draw()
-
-        pygame.quit()
+                self._handle_events()
+                self._update(delta_time)
+                self._draw()
+        finally:
+            pygame.quit()
 
     def _handle_events(self) -> None:
         """Handle keyboard and mouse events."""
@@ -117,28 +112,6 @@ class Visualizer:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     self._handle_mouse_click(event.pos)
-
-            elif event.type == pygame.MOUSEMOTION:
-                self._handle_mouse_motion(event.pos)
-
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    self._handle_mouse_click(event.pos)
-
-    def _handle_mouse_motion(
-        self,
-        position: tuple[int, int],
-    ) -> None:
-        """Update the object currently under the mouse."""
-        self.hovered_zone = self._find_zone_at(position)
-
-        if self.hovered_zone is not None:
-            self.hovered_connection = None
-            return
-
-        self.hovered_connection = self._find_connection_at(
-            position
-        )
 
     def _handle_keyboard(self, key: int) -> None:
         """Handle keyboard controls."""
@@ -161,7 +134,7 @@ class Visualizer:
         self,
         position: tuple[int, int],
     ) -> None:
-        """Handle clicks on controls and graph objects."""
+        """Handle clicks on simulation controls."""
         if self.previous_button.collidepoint(position):
             self._previous_turn()
             return
@@ -176,110 +149,6 @@ class Visualizer:
 
         if self.reset_button.collidepoint(position):
             self._reset()
-            return
-
-        zone = self._find_zone_at(position)
-
-        if zone is not None:
-            self.selected_zone = zone
-            self.selected_connection = None
-            return
-
-        connection = self._find_connection_at(position)
-
-        if connection is not None:
-            self.selected_connection = connection
-            self.selected_zone = None
-            return
-
-        self.selected_zone = None
-        self.selected_connection = None
-
-    def _find_zone_at(
-        self,
-        position: tuple[int, int],
-    ) -> Zone | None:
-        """Return the zone under the mouse."""
-        mouse_x, mouse_y = position
-
-        for zone in self.graph.zones.values():
-            zone_x, zone_y = self.positions[zone.name]
-
-            dx = mouse_x - zone_x
-            dy = mouse_y - zone_y
-
-            distance_squared = dx * dx + dy * dy
-
-            if distance_squared <= self.ZONE_RADIUS ** 2:
-                return zone
-
-        return None
-
-    def _find_connection_at(
-        self,
-        position: tuple[int, int],
-    ) -> Connection | None:
-        """Return the connection under the mouse."""
-        for connection in self.graph.connections:
-            start = self.positions[connection.start.name]
-            end = self.positions[connection.end.name]
-
-            distance = self._point_to_segment_distance(
-                position,
-                start,
-                end,
-            )
-
-            if distance <= 8:
-                return connection
-
-        return None
-
-    def _point_to_segment_distance(
-        self,
-        point: tuple[int, int],
-        start: tuple[int, int],
-        end: tuple[int, int],
-    ) -> float:
-        """Calculate the distance from a point to a segment."""
-        px, py = point
-        x1, y1 = start
-        x2, y2 = end
-
-        dx = x2 - x1
-        dy = y2 - y1
-
-        length_squared = dx * dx + dy * dy
-
-        if length_squared == 0:
-            distance_x = px - x1
-            distance_y = py - y1
-
-            return (
-                distance_x * distance_x
-                + distance_y * distance_y
-            ) ** 0.5
-
-        projection = (
-            (px - x1) * dx
-            + (py - y1) * dy
-        ) / length_squared
-
-        projection = max(
-            0.0,
-            min(1.0, projection),
-        )
-
-        closest_x = x1 + projection * dx
-        closest_y = y1 + projection * dy
-
-        distance_x = px - closest_x
-        distance_y = py - closest_y
-
-        return (
-            distance_x * distance_x
-            + distance_y * distance_y
-        ) ** 0.5
 
     def _next_turn(self) -> None:
         """Display the next simulation turn immediately."""
@@ -436,131 +305,8 @@ class Visualizer:
         self._draw_zones()
         self._draw_drones()
         self._draw_controls()
-        self._draw_information_panel()
 
         pygame.display.flip()
-
-    def _draw_information_panel(self) -> None:
-        """Draw information about the selected or hovered object."""
-        zone = (
-            self.selected_zone
-            if self.selected_zone is not None
-            else self.hovered_zone
-        )
-
-        connection = (
-            self.selected_connection
-            if self.selected_connection is not None
-            else self.hovered_connection
-        )
-
-        if zone is not None:
-            self._draw_zone_information(zone)
-        elif connection is not None:
-            self._draw_connection_information(connection)
-
-    def _draw_zone_information(
-        self,
-        zone: Zone,
-    ) -> None:
-        """Display information about a zone."""
-        panel = pygame.Rect(
-            self.WINDOW_WIDTH - 280,
-            20,
-            250,
-            150,
-        )
-
-        pygame.draw.rect(
-            self.screen,
-            (45, 45, 55),
-            panel,
-            border_radius=10,
-        )
-
-        pygame.draw.rect(
-            self.screen,
-            self.TEXT_COLOR,
-            panel,
-            width=2,
-            border_radius=10,
-        )
-
-        lines = [
-            zone.name,
-            f"Type: {zone.zone_type.value}",
-            f"Capacity: {zone.max_drones}",
-            f"Drones: {zone.current_drones}",
-        ]
-
-        self._draw_information_lines(lines, panel)
-
-    def _draw_connection_information(
-        self,
-        connection: Connection,
-    ) -> None:
-        """Display information about a connection."""
-        panel = pygame.Rect(
-            self.WINDOW_WIDTH - 300,
-            20,
-            270,
-            150,
-        )
-
-        pygame.draw.rect(
-            self.screen,
-            (45, 45, 55),
-            panel,
-            border_radius=10,
-        )
-
-        pygame.draw.rect(
-            self.screen,
-            self.TEXT_COLOR,
-            panel,
-            width=2,
-            border_radius=10,
-        )
-
-        lines = [
-            "Connection",
-            (
-                f"{connection.start.name} "
-                f"<-> {connection.end.name}"
-            ),
-            f"Capacity: {connection.max_link_capacity}",
-            f"In transit: {connection.current_drones}",
-        ]
-
-        self._draw_information_lines(lines, panel)
-
-    def _draw_information_lines(
-        self,
-        lines: list[str],
-        panel: pygame.Rect,
-    ) -> None:
-        """Draw information lines inside a panel."""
-        y = panel.top + 15
-
-        for index, line in enumerate(lines):
-            font = (
-                self.title_font
-                if index == 0
-                else self.font
-            )
-
-            text = font.render(
-                line,
-                True,
-                self.TEXT_COLOR,
-            )
-
-            self.screen.blit(
-                text,
-                (panel.left + 15, y),
-            )
-
-            y += 35 if index == 0 else 25
 
     def _draw_title(self) -> None:
         """Draw the title and current turn."""
@@ -589,11 +335,7 @@ class Visualizer:
             start = self.positions[connection.start.name]
             end = self.positions[connection.end.name]
 
-            if (
-                connection == self.hovered_connection
-                or connection == self.selected_connection
-            ):
-                pygame.draw.line(
+            pygame.draw.line(
                     self.screen,
                     (240, 240, 240),
                     start,
@@ -613,17 +355,6 @@ class Visualizer:
         for zone in self.graph.zones.values():
             position = self.positions[zone.name]
 
-            if (
-                zone == self.hovered_zone
-                or zone == self.selected_zone
-            ):
-                pygame.draw.circle(
-                    self.screen,
-                    (255, 255, 255),
-                    position,
-                    self.ZONE_RADIUS + 6,
-                    3,
-                )
             pygame.draw.circle(
                 self.screen,
                 self._get_zone_color(zone),
@@ -826,13 +557,13 @@ class Visualizer:
     def _draw_controls(self) -> None:
         """Draw simulation control buttons."""
         buttons = [
-            (self.previous_button, "◀ Previous"),
-            (self.next_button, "Next ▶"),
+            (self.previous_button, "Previous"),
+            (self.next_button, "Next"),
             (
                 self.play_button,
-                "Pause" if self.playing else "▶ Play",
+                "Pause" if self.playing else "Play",
             ),
-            (self.reset_button, "↻ Reset"),
+            (self.reset_button, "Reset"),
         ]
 
         mouse_position = pygame.mouse.get_pos()

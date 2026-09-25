@@ -87,22 +87,13 @@ def run_simulation(map_file: str) -> Simulation:
 
 def print_history(simulation: Simulation) -> None:
     """Display the simulation history."""
-    for turn_number, events in enumerate(
-        simulation.history,
-        start=1,
-    ):
-        print(f"\n=== Turn {turn_number} ===")
-
-        for event in events:
-            print(event)
+    for events in simulation.history:
+        print(" ".join(event for event in events if event))
 
 
-def run_single_map(map_file: str) -> None:
+def run_map(map_file: str) -> None:
     """Run and display one map."""
     simulation = run_simulation(map_file)
-
-    print(f"\nMap: {map_file}")
-    print(f"Total turns: {simulation.turn}")
 
     visualizer = Visualizer(simulation)
     visualizer.run()
@@ -114,11 +105,11 @@ def main() -> None:
         raise ValueError(
             "Usage: "
             "python3 -m src.main "
-            "<map_file|--all>"
+            "<map_file>"
         )
 
     argument = sys.argv[1]
-    run_single_map(argument)
+    run_map(argument)
 
 
 if __name__ == "__main__":

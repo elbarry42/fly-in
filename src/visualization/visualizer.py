@@ -160,6 +160,8 @@ class Visualizer:
         self.current_turn += 1
         self.animation_progress = 1.0
 
+        self._print_current_turn()
+
     def _previous_turn(self) -> None:
         """Display the previous simulation turn immediately."""
         if self.current_turn <= 0:
@@ -169,6 +171,8 @@ class Visualizer:
         self.pause_requested = False
         self.current_turn -= 1
         self.animation_progress = 1.0
+
+        self._print_current_turn()
 
     def _toggle_play(self) -> None:
         """Start or pause automatic playback."""
@@ -190,6 +194,8 @@ class Visualizer:
         self.playing = False
         self.pause_requested = False
 
+        self._print_current_turn()
+
     def _update(self, delta_time: float) -> None:
         """Update automatic animation between simulation turns."""
         if not self.playing:
@@ -210,6 +216,7 @@ class Visualizer:
 
         self.animation_progress = 1.0
         self.current_turn += 1
+        self._print_current_turn()
 
         if self.pause_requested:
             self.playing = False
@@ -603,3 +610,14 @@ class Visualizer:
                 text,
                 text_rect,
             )
+
+    def _print_current_turn(self) -> None:
+        """Display the movements of the current simulation turn."""
+        print("\033[2J\033[H", end="")
+
+        if self.current_turn == 0:
+            return
+
+        events = self.simulation.history[self.current_turn - 1]
+
+        print(" ".join(event for event in events if event), flush=True)

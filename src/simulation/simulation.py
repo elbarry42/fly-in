@@ -276,10 +276,7 @@ class Simulation:
                 connection.current_drones += 1
 
                 turn_events.append(
-                    f"Drone {drone.id}: "
-                    f"{current_zone.name} -> "
-                    f"{next_zone.name} "
-                    f"(transit)"
+                    f"D{drone.id}-{current_zone.name}-{next_zone.name}"
                 )
 
             else:
@@ -303,9 +300,7 @@ class Simulation:
             drone.path_index += 1
 
             turn_events.append(
-                f"Drone {drone.id}: "
-                f"{current_zone.name} -> "
-                f"{next_zone.name}"
+                f"D{drone.id}-{next_zone.name}"
             )
 
             if drone.path_index >= len(drone.path) - 1:
@@ -326,7 +321,7 @@ class Simulation:
         # ---------------------------------------------------------
 
         if not turn_events:
-            turn_events.append("No movement")
+            turn_events.append("")
 
         self.history.append(turn_events)
         self.turn += 1

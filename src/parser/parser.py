@@ -12,6 +12,9 @@ class Parser:
 
     ZONE_NAME_PATTERN = re.compile(r"^[^\s-]+$")
     INTEGER_PATTERN = re.compile(r"^-?\d+$")
+    MAX_DRONES = 100
+    MIN_COORDINATE = -50
+    MAX_COORDINATE = 50
 
     def __init__(self, filename: str):
         self.filename = filename
@@ -25,11 +28,22 @@ class Parser:
         """Parse the map and return the resulting graph."""
         try:
             with open(self.filename, "r") as file:
-                for line_number, raw_line in enumerate(file, start=1):
-                    line = raw_line.strip()
+                first_line_read = False
 
-                    if not line or line.startswith("#"):
+                for line_number, raw_line in enumerate(file, start=1):
+                    line = raw_line.split("#", 1)[0].strip()
+
+                    if not line:
                         continue
+
+                    if not first_line_read:
+                        first_line_read = True
+
+                        if not line.startswith("nb_drones:"):
+                            raise ValueError(
+                                f"Line {line_number}: "
+                                "first line must define nb_drones"
+                            )
 
                     try:
                         self._parse_line(line, line_number)
@@ -51,10 +65,6 @@ class Parser:
 
     def _parse_line(self, line: str, line_number: int) -> None:
         """Parse one non-empty, non-comment line."""
-        if line_number == 1:
-            if not line.startswith("nb_drones:"):
-                raise ValueError("first line must define nb_drones")
-
         if line.startswith("nb_drones"):
             if self._seen_nb_drones:
                 raise ValueError("nb_drones can only be defined once")
@@ -84,6 +94,9 @@ class Parser:
 
         if nb_drones <= 0:
             raise ValueError("nb_drones must be a positive integer")
+
+        if nb_drones > self.MAX_DRONES:
+            raise ValueError("nb_drones cannot exceed 100")
 
         self.graph.nb_drones = nb_drones
 
@@ -115,6 +128,12 @@ class Parser:
         x = self._parse_integer(x_value, "x coordinate")
         y = self._parse_integer(y_value, "y coordinate")
 
+        if not self.MIN_COORDINATE <= x <= self.MAX_COORDINATE:
+            raise ValueError("x coordinate must be between -50 and 50")
+
+        if not self.MIN_COORDINATE <= y <= self.MAX_COORDINATE:
+            raise ValueError("y coordinate must be between -50 and 50")
+
         zone = Zone(name=name, hub_type=hub_type, x=x, y=y)
 
         self._parse_zone_options(zone, options)
@@ -125,6 +144,7 @@ class Parser:
         if hub_type == HubType.END:
             self._end_count += 1
 
+        self._validate_coordinates(x, y)
         self.graph.add_zone(zone)
 
     def _parse_connection(self, line: str) -> None:
@@ -210,6 +230,8 @@ class Parser:
         if not options:
             return
 
+        seen_keys: set[str] = set()
+
         for part in options.split():
             if "=" not in part:
                 raise ValueError(f"invalid zone option '{part}'")
@@ -218,6 +240,11 @@ class Parser:
 
             if not key or not value:
                 raise ValueError(f"invalid zone option '{part}'")
+
+            if key in seen_keys:
+                raise ValueError(f"duplicate zone option '{key}'")
+
+            seen_keys.add(key)
 
             if key == "color":
                 zone.color = value
@@ -231,6 +258,9 @@ class Parser:
                     ) from error
 
             elif key == "max_drones":
+                if zone.hub_type in (HubType.START, HubType.END):
+                    continue
+
                 capacity = self._parse_integer(value, "max_drones")
 
                 if capacity <= 0:
@@ -250,6 +280,8 @@ class Parser:
         if not options:
             return
 
+        seen_keys: set[str] = set()
+
         for part in options.split():
             if "=" not in part:
                 raise ValueError(f"invalid connection option '{part}'")
@@ -258,6 +290,11 @@ class Parser:
 
             if not key or not value:
                 raise ValueError(f"invalid connection option '{part}'")
+
+            if key in seen_keys:
+                raise ValueError(f"duplicate connection option '{key}'")
+
+            seen_keys.add(key)
 
             if key == "max_link_capacity":
                 capacity = self._parse_integer(
@@ -277,6 +314,12 @@ class Parser:
         """Validate a zone name."""
         if not self.ZONE_NAME_PATTERN.fullmatch(name):
             raise ValueError(f"invalid zone name '{name}'")
+
+    def _validate_coordinates(self, x: int, y: int) -> None:
+        """Validate that zone coordinates are unique."""
+        for zone in self.graph.zones.values():
+            if zone.x == x and zone.y == y:
+                raise ValueError(f"duplicate coordinates ({x}, {y})")
 
     def _parse_integer(
         self,

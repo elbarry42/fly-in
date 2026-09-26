@@ -14,7 +14,7 @@ install:
 	@$(FLAKE8) --version
 
 run:
-	$(PYTHON) -m src.main maps/easy/01_linear_path.txt
+	$(PYTHON) -m src.main $(MAP)
 
 check:
 	$(MYPY) src

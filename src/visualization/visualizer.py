@@ -345,38 +345,76 @@ class Visualizer:
             drone_id = state[0]
             current_zone_name = state[1]
             destination_name = state[4]
+            connection_name = state[5]
             previous_state = previous_states.get(drone_id)
 
             if previous_state is None:
                 continue
 
-            previous_zone_name = previous_state[1]
+            previous_connection = previous_state[5]
 
-            if self.current_turn == 0:
-                start_name = current_zone_name
-                end_name = current_zone_name
-            elif destination_name is not None:
-                start_name = current_zone_name
-                end_name = destination_name
+            if connection_name is not None and destination_name is not None:
+                connection_parts = connection_name.split("-", 1)
+
+                if len(connection_parts) != 2:
+                    continue
+
+                start_name, end_name = connection_parts
+                start_position = self.positions.get(start_name)
+                end_position = self.positions.get(end_name)
+
+                if start_position is None or end_position is None:
+                    continue
+
+                x = int(
+                    start_position[0]
+                    + (end_position[0] - start_position[0]) * 0.5
+                )
+                y = int(
+                    start_position[1]
+                    + (end_position[1] - start_position[1]) * 0.5
+                )
+
+            elif previous_connection is not None:
+                connection_parts = previous_connection.split("-", 1)
+
+                if len(connection_parts) != 2:
+                    continue
+
+                start_name, end_name = connection_parts
+                start_position = self.positions.get(start_name)
+                end_position = self.positions.get(end_name)
+                current_position = self.positions.get(current_zone_name)
+
+                if (
+                    start_position is None
+                    or end_position is None
+                    or current_position is None
+                ):
+                    continue
+
+                x = current_position[0]
+                y = current_position[1]
+
             else:
-                start_name = previous_zone_name
-                end_name = current_zone_name
+                previous_zone_name = previous_state[1]
 
-            start_position = self.positions.get(start_name)
-            end_position = self.positions.get(end_name)
+                start_position = self.positions.get(previous_zone_name)
+                end_position = self.positions.get(current_zone_name)
 
-            if start_position is None or end_position is None:
-                continue
+                if start_position is None or end_position is None:
+                    continue
 
-            progress = self.animation_progress
-            x = int(
-                start_position[0]
-                + (end_position[0] - start_position[0]) * progress
-            )
-            y = int(
-                start_position[1]
-                + (end_position[1] - start_position[1]) * progress
-            )
+                progress = self.animation_progress
+
+                x = int(
+                    start_position[0]
+                    + (end_position[0] - start_position[0]) * progress
+                )
+                y = int(
+                    start_position[1]
+                    + (end_position[1] - start_position[1]) * progress
+                )
 
             self._draw_drone(drone_id, (x, y))
 

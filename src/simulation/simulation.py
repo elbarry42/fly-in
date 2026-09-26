@@ -9,9 +9,12 @@ class Simulation:
     """Manage the execution of the drone simulation."""
 
     def __init__(self, graph: Graph, drones: list[Drone]):
+        """Initialize the simulation with a graph and drones."""
         self.graph = graph
         self.drones = drones
         self.turn = 0
+        self.transit_remaining: dict[int, int] = {}
+        self.transit_arrivals: set[int] = set()
 
         self.history: list[list[str]] = []
         self.snapshots: list[
@@ -19,8 +22,14 @@ class Simulation:
         ] = []
         self._save_snapshot()
 
-    def _finish_transits(self) -> None:
-        """Finish restricted movements started on previous turns."""
+    def _finish_transits(
+        self,
+        occupancy: dict[str, int],
+        reserved: dict[str, int],
+    ) -> list[str]:
+        """Advance restricted movements and finish completed transits."""
+        events: list[str] = []
+
         for drone in self.drones:
             if not drone.in_transit:
                 continue
@@ -38,21 +47,44 @@ class Simulation:
                     f"Drone {drone.id} has no transit connection"
                 )
 
-            if connection.current_drones <= 0:
+            remaining = self.transit_remaining.get(drone.id)
+            if remaining is None:
                 raise ValueError(
-                    f"Invalid transit state for drone {drone.id}"
+                    f"Drone {drone.id} has no transit duration"
                 )
 
+            remaining -= 1
+            self.transit_remaining[drone.id] = remaining
+
+            if remaining > 0:
+                events.append(
+                    f"D{drone.id}-{self._connection_name(connection)}"
+                )
+                continue
+
+            connection.current_drones -= 1
             drone.current_zone = destination
             drone.path_index += 1
-            connection.current_drones -= 1
-
             drone.in_transit = False
             drone.transit_connection = None
             drone.transit_destination = None
+            del self.transit_remaining[drone.id]
+
+            if destination not in (self.graph.start, self.graph.end):
+                reserved[destination.name] = (
+                    reserved.get(destination.name, 0) - 1
+                )
+                occupancy[destination.name] = (
+                    occupancy.get(destination.name, 0) + 1
+                )
+
+            events.append(f"D{drone.id}-{destination.name}")
+            self.transit_arrivals.add(drone.id)
 
             if drone.path_index >= len(drone.path) - 1:
                 drone.finished = True
+
+        return events
 
     def _current_occupancy(self) -> dict[str, int]:
         """Return current occupancy for each zone."""
@@ -61,11 +93,40 @@ class Simulation:
         for drone in self.drones:
             if drone.finished or drone.in_transit:
                 continue
+            if drone.id in self.transit_arrivals:
+                continue
 
             zone_name = drone.current_zone.name
             occupancy[zone_name] = occupancy.get(zone_name, 0) + 1
 
         return occupancy
+
+    def _reserved_destinations(self) -> dict[str, int]:
+        """Count destination slots reserved by drones in transit."""
+        reserved: dict[str, int] = {}
+
+        for drone in self.drones:
+            if not drone.in_transit:
+                continue
+
+            destination = drone.transit_destination
+            if destination is None:
+                raise ValueError(
+                    f"Drone {drone.id} has no transit destination"
+                )
+
+            if destination in (self.graph.start, self.graph.end):
+                continue
+
+            reserved[destination.name] = (
+                reserved.get(destination.name, 0) + 1
+            )
+
+        return reserved
+
+    def _connection_name(self, connection: Connection) -> str:
+        """Return the output name of a connection."""
+        return f"{connection.start.name}-{connection.end.name}"
 
     def _connection_key(
         self, start: Zone, end: Zone
@@ -74,9 +135,12 @@ class Simulation:
         return min(start.name, end.name), max(start.name, end.name)
 
     def _can_enter_zone(
-        self, zone: Zone, occupancy: dict[str, int]
+        self,
+        zone: Zone,
+        occupancy: dict[str, int],
+        reserved: dict[str, int],
     ) -> bool:
-        """Check whether a drone can enter a zone."""
+        """Check whether a drone can reserve a destination zone."""
         if zone == self.graph.start:
             return True
 
@@ -86,7 +150,10 @@ class Simulation:
         if zone.zone_type == ZoneType.BLOCKED:
             return False
 
-        return occupancy.get(zone.name, 0) < zone.max_drones
+        occupied = occupancy.get(zone.name, 0)
+        reservations = reserved.get(zone.name, 0)
+
+        return occupied + reservations < zone.max_drones
 
     def _can_use_connection(
         self,
@@ -134,26 +201,26 @@ class Simulation:
 
     def step(self) -> None:
         """Execute one simulation turn."""
-        self._finish_transits()
-
         occupancy = self._current_occupancy()
+        reserved = self._reserved_destinations()
+        turn_events = self._finish_transits(occupancy, reserved)
         connection_usage: dict[tuple[str, str], int] = {}
-        moves: list[tuple[Drone, Zone, Connection]] = []
+        candidates: list[tuple[Drone, Zone, Connection]] = []
+        moves: list[tuple[Drone, Zone]] = []
         transit_moves: list[tuple[Drone, Zone, Connection]] = []
-        turn_events: list[str] = []
 
         for drone in self.drones:
             if drone.finished or drone.in_transit:
                 continue
+            if drone.id in self.transit_arrivals:
+                continue
 
             next_index = drone.path_index + 1
-
             if next_index >= len(drone.path):
                 drone.finished = True
                 continue
 
             next_zone = drone.path[next_index]
-
             if next_zone.zone_type == ZoneType.BLOCKED:
                 continue
 
@@ -162,7 +229,6 @@ class Simulation:
                 next_zone,
                 self.graph.connections,
             )
-
             if connection is None:
                 raise ValueError(
                     f"No connection between "
@@ -174,28 +240,41 @@ class Simulation:
             ):
                 continue
 
-            current_zone = drone.current_zone
-            self._release_zone(current_zone, occupancy)
-
-            if not self._can_enter_zone(next_zone, occupancy):
-                self._reserve_zone(current_zone, occupancy)
-                continue
-
-            key = self._connection_key(current_zone, next_zone)
+            key = self._connection_key(
+                drone.current_zone,
+                next_zone,
+            )
             connection_usage[key] = connection_usage.get(key, 0) + 1
-            self._reserve_zone(next_zone, occupancy)
+            candidates.append((drone, next_zone, connection))
+
+        for drone, _, _ in candidates:
+            self._release_zone(drone.current_zone, occupancy)
+
+        for drone, next_zone, connection in candidates:
+            current_zone = drone.current_zone
+
+            if not self._can_enter_zone(
+                next_zone, occupancy, reserved
+            ):
+                self._reserve_zone(current_zone, occupancy)
+                key = self._connection_key(
+                    current_zone,
+                    next_zone,
+                )
+                connection_usage[key] -= 1
+                continue
 
             if next_zone.zone_type == ZoneType.RESTRICTED:
                 transit_moves.append((drone, next_zone, connection))
                 connection.current_drones += 1
-                turn_events.append(
-                    f"D{drone.id}-{current_zone.name}-{next_zone.name}"
+                reserved[next_zone.name] = (
+                    reserved.get(next_zone.name, 0) + 1
                 )
             else:
-                moves.append((drone, next_zone, connection))
+                self._reserve_zone(next_zone, occupancy)
+                moves.append((drone, next_zone))
 
-        for drone, next_zone, _ in moves:
-            current_zone = drone.current_zone
+        for drone, next_zone in moves:
             drone.current_zone = next_zone
             drone.path_index += 1
             turn_events.append(f"D{drone.id}-{next_zone.name}")
@@ -207,6 +286,12 @@ class Simulation:
             drone.in_transit = True
             drone.transit_connection = connection
             drone.transit_destination = next_zone
+            self.transit_remaining[drone.id] = 1
+            turn_events.append(
+                f"D{drone.id}-{self._connection_name(connection)}"
+            )
+
+        self.transit_arrivals.clear()
 
         if not turn_events:
             turn_events.append("")

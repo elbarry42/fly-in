@@ -78,7 +78,9 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("Program interrupt by user")
+        print("Program interrupted by user")
     except (ValueError, RuntimeError, OSError) as error:
         print(f"Error: {error}", file=sys.stderr)
         sys.exit(1)
+    except Exception as error:
+        print(error)

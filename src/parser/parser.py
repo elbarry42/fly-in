@@ -17,6 +17,7 @@ class Parser:
     MAX_COORDINATE = 50
 
     def __init__(self, filename: str):
+        """Initialize the parser with a map filename."""
         self.filename = filename
         self.graph = Graph()
         self._connection_keys: set[tuple[str, str]] = set()

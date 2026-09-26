@@ -5,11 +5,14 @@ from .connection import Connection
 
 
 class Drone:
+    """Represent a drone moving through the simulation."""
+
     def __init__(
         self,
         drone_id: int,
         start: Zone,
     ):
+        """Initialize a drone at its starting zone."""
         self.id = drone_id
         self.current_zone = start
 
@@ -23,6 +26,7 @@ class Drone:
         self.transit_destination: Zone | None = None
 
     def __str__(self) -> str:
+        """Return a readable representation of the drone."""
         if self.in_transit:
             destination = (
                 self.transit_destination.name

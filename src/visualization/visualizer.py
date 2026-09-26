@@ -29,6 +29,7 @@ class Visualizer:
     BUTTON_GAP = 15
 
     def __init__(self, simulation: Simulation):
+        """Initialize the visualizer with a simulation."""
         self.simulation = simulation
         self.graph = simulation.graph
 

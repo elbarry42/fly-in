@@ -55,7 +55,7 @@ class Zone:
             f"capacity={self.max_drones})"
         )
 
-    def add_neighbor(self, neighbor: Zone):
+    def add_neighbor(self, neighbor: Zone) -> None:
         """Add a neighboring zone."""
         self.neighbors.append(neighbor)
 

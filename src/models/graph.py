@@ -5,7 +5,7 @@ from .connection import Connection
 class Graph:
     """Represent the zones and connections of the simulation map."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize an empty graph."""
         self.zones: dict[str, Zone] = {}
         self.connections: list[Connection] = []
@@ -15,7 +15,7 @@ class Graph:
 
         self.nb_drones = 0
 
-    def add_zone(self, zone: Zone):
+    def add_zone(self, zone: Zone) -> None:
         """Add a zone to the graph."""
         if self.has_zone(zone.name):
             raise ValueError(f"Zone '{zone.name}' already exists")
@@ -27,7 +27,7 @@ class Graph:
         elif zone.hub_type == HubType.END:
             self.end = zone
 
-    def add_connection(self, connection: Connection):
+    def add_connection(self, connection: Connection) -> None:
         """Add a connection to the graph."""
         self.connections.append(connection)
 
